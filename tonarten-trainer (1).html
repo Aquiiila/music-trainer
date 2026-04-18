@@ -1,0 +1,943 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Tonarten-Trainer</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0e1a;
+    --panel: rgba(15, 23, 42, 0.4);
+    --border: rgba(30, 41, 59, 0.8);
+  }
+  body {
+    font-family: 'Inter', ui-sans-serif, system-ui, sans-serif;
+    background: var(--bg);
+    color: #f1f5f9;
+  }
+  .serif { font-family: 'DM Serif Display', Georgia, serif; font-weight: 400; }
+  /* WCAG AA: Mindestkontrast fuer Meta-Text */
+  .text-meta { color: #94a3b8; } /* slate-400, Kontrast ~7.5:1 auf #0a0e1a */
+  .text-quiet { color: #cbd5e1; } /* slate-300, ~10:1 */
+  button { cursor: pointer; }
+  button:focus-visible, input:focus-visible, textarea:focus-visible {
+    outline: 2px solid #fbbf24;
+    outline-offset: 2px;
+  }
+  .fade-in { animation: fade 0.3s ease-out; }
+  @keyframes fade { from { opacity: 0; transform: translateY(4px); } to { opacity: 1; transform: translateY(0); } }
+</style>
+</head>
+<body class="min-h-screen">
+
+<!-- HEADER -->
+<header class="border-b border-slate-800/60">
+  <div class="max-w-5xl mx-auto px-4 sm:px-6 py-8 sm:py-12">
+    <p class="text-xs tracking-[0.3em] uppercase text-amber-400 mb-3">Musiktheorie · Lerntool</p>
+    <h1 class="serif text-4xl sm:text-6xl tracking-tight">
+      Tonarten<span class="text-amber-400">·</span>Trainer
+    </h1>
+    <p class="mt-4 text-meta max-w-2xl text-base sm:text-lg leading-relaxed">
+      Tonleitern, Akkorde und Funktionen auf einen Blick &mdash; inklusive Modulation, wenn Du bereit bist, zwischen Tonarten zu wechseln.
+    </p>
+  </div>
+</header>
+
+<main class="max-w-5xl mx-auto px-4 sm:px-6 py-10 sm:py-14 space-y-14">
+
+  <!-- SECTION 01: Tonart wählen -->
+  <section>
+    <div class="flex items-baseline justify-between mb-6">
+      <h2 class="serif text-2xl sm:text-3xl">
+        <span class="text-amber-400/60 mr-2">01</span>Tonart wählen
+      </h2>
+      <button id="toggleKeyView" class="text-sm text-meta hover:text-amber-300 underline decoration-slate-600 hover:decoration-amber-300 underline-offset-4 transition-colors">
+        Alle als Liste
+      </button>
+    </div>
+    <div id="keySelector"></div>
+  </section>
+
+  <!-- SECTION 02: Tonleiter -->
+  <section>
+    <h2 class="serif text-2xl sm:text-3xl mb-6">
+      <span class="text-amber-400/60 mr-2">02</span>Tonleiter
+    </h2>
+    <div id="scaleSection" class="bg-slate-900/40 border border-slate-800 rounded-lg p-5 sm:p-8"></div>
+  </section>
+
+  <!-- SECTION 03: Akkorde -->
+  <section>
+    <h2 class="serif text-2xl sm:text-3xl mb-3">
+      <span class="text-amber-400/60 mr-2">03</span>Diatonische Akkorde
+    </h2>
+    <p id="chordIntro" class="text-meta mb-6 max-w-2xl"></p>
+    <div id="chordList" class="grid gap-3"></div>
+    <div class="mt-6 flex flex-wrap gap-3 text-xs">
+      <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-amber-400"></span><span class="text-meta">Tonika-Bereich</span></span>
+      <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-sky-400"></span><span class="text-meta">Subdominant-Bereich</span></span>
+      <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-rose-400"></span><span class="text-meta">Dominant-Bereich</span></span>
+      <span class="flex items-center gap-2"><span class="inline-block w-3 h-3 rounded-full bg-violet-400"></span><span class="text-meta">Vermindert</span></span>
+    </div>
+  </section>
+
+  <!-- SECTION 04: Merkhilfen -->
+  <section>
+    <h2 class="serif text-2xl sm:text-3xl mb-6">
+      <span class="text-amber-400/60 mr-2">04</span>Merkhilfen
+    </h2>
+    <div id="mnemonicBox"></div>
+    <div class="grid sm:grid-cols-2 gap-4 mt-4">
+      <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5">
+        <div class="serif text-sm font-semibold text-amber-200 mb-2">Kadenz merken (T &ndash; S &ndash; D &ndash; T)</div>
+        <div class="text-sm text-quiet leading-relaxed">Jede Kadenz läuft: Tonika &rarr; Subdominante &rarr; Dominante &rarr; Tonika. Das ist das Grundgerüst fast jedes Popsongs. In Dur: I &ndash; IV &ndash; V &ndash; I.</div>
+      </div>
+      <div id="parallelCard" class="bg-slate-900/40 border border-slate-800 rounded-lg p-5"></div>
+      <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5">
+        <div class="serif text-sm font-semibold text-amber-200 mb-2">Moll harmonisch</div>
+        <div class="text-sm text-quiet leading-relaxed">In Moll wird oft die 7. Stufe erhöht, damit die Dominante (V) zum Dur-Akkord wird &mdash; klingt »spannender« und löst besser zur Tonika auf. In a-Moll: v = Em natürlich &rarr; V = E-Dur harmonisch.</div>
+      </div>
+      <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5">
+        <div class="serif text-sm font-semibold text-amber-200 mb-2">Die 4-Akkord-Progression</div>
+        <div class="text-sm text-quiet leading-relaxed">vi &ndash; IV &ndash; I &ndash; V funktioniert in jeder Dur-Tonart. Probier es in C-Dur: Am &ndash; F &ndash; C &ndash; G. Das ist der »Pop-Song-Cheat« &mdash; Milliarden Songs basieren darauf.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- SECTION 05: Modulation -->
+  <section>
+    <div class="flex items-baseline flex-wrap gap-3 mb-3">
+      <h2 class="serif text-2xl sm:text-3xl">
+        <span class="text-amber-400/60 mr-2">05</span>Tonartenwechsel
+      </h2>
+      <span class="text-[10px] tracking-[0.25em] uppercase text-meta border border-slate-700 px-2 py-0.5 rounded">Späteres Lernziel</span>
+    </div>
+    <p class="text-meta mb-8 max-w-2xl leading-relaxed">
+      Wie kommst Du elegant von einer Tonart in die nächste? Der Schlüssel: gemeinsame Akkorde als Brücke <span class="text-amber-200">(»Pivot-Akkorde«)</span> und die Dominante der Zieltonart als Wegweiser.
+    </p>
+
+    <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5 sm:p-6 mb-6">
+      <div class="text-xs uppercase tracking-widest text-meta mb-4">
+        Ziel-Tonart &mdash; ausgehend von <span id="modSourceLabel" class="text-amber-300"></span>
+      </div>
+      <div id="relatedKeysRow" class="flex flex-wrap gap-2 mb-4"></div>
+      <button id="toggleAllTargets" class="text-xs text-meta hover:text-amber-300 underline decoration-slate-600 hover:decoration-amber-300 underline-offset-4 transition-colors">
+        &darr; Andere Tonart wählen
+      </button>
+      <div id="allTargetsList" class="mt-4 flex flex-wrap gap-1.5 hidden"></div>
+    </div>
+
+    <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5 sm:p-8 mb-6">
+      <div id="modulationAnalysis"></div>
+    </div>
+
+    <div>
+      <div class="text-xs uppercase tracking-widest text-meta mb-4">Drei Arten der Modulation</div>
+      <div class="grid sm:grid-cols-3 gap-4">
+        <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5">
+          <div class="serif text-sm font-semibold text-amber-200 mb-2">1. Diatonisch (Pivot)</div>
+          <div class="text-sm text-quiet leading-relaxed">Über einen gemeinsamen Akkord, der in beiden Tonarten vorkommt. Die sanfteste Modulation &mdash; kaum hörbar. Funktioniert am besten zwischen eng verwandten Tonarten.</div>
+        </div>
+        <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5">
+          <div class="serif text-sm font-semibold text-amber-200 mb-2">2. Chromatisch (Zwischendominante)</div>
+          <div class="text-sm text-quiet leading-relaxed">Direkt über die Dominante (V&#8311;) der neuen Tonika. Auffälliger, aber zwingend &mdash; der Hörer spürt den Zug. In Pop, Jazz und Klassik Standard.</div>
+        </div>
+        <div class="bg-slate-900/40 border border-slate-800 rounded-lg p-5">
+          <div class="serif text-sm font-semibold text-amber-200 mb-2">3. Enharmonisch</div>
+          <div class="text-sm text-quiet leading-relaxed">Ein Akkord wird umgedeutet (z.B. ein verminderter Septakkord in 4 verschiedene Tonarten auflösbar). Ermöglicht Sprünge in entfernte Tonarten.</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="mt-6 bg-amber-500/5 border border-amber-400/20 rounded-lg p-5">
+      <div class="text-xs uppercase tracking-widest text-amber-400 mb-2">Übetipp am Klavier</div>
+      <div class="text-sm text-quiet leading-relaxed">
+        Spiele die gezeigte Progression langsam durch. Achte auf den Moment, wo der Pivot-Akkord umgedeutet wird &mdash; Du solltest hören, wie sich das »Zuhause« verschiebt. Dann die Zwischendominante (V&#8311;): Sie klingt erst »fremd« zur alten Tonart, aber »richtig« zur neuen. Das Ohr schult sich am schnellsten, wenn Du dieselbe Modulation in mehreren Tonarten übst.
+      </div>
+    </div>
+  </section>
+
+  <footer class="pt-8 border-t border-slate-800/60 text-sm text-meta">
+    <p>
+      Deutsche Notation: <span class="text-quiet font-mono">H</span> = engl. B,
+      <span class="text-quiet font-mono">B</span> = engl. B&#9837;.
+      Kreuze enden auf <span class="text-quiet font-mono">-is</span> (Fis, Cis&hellip;), Bes meist auf
+      <span class="text-quiet font-mono">-es</span> (Es, As, Des&hellip;), Ausnahme: <span class="text-quiet font-mono">B</span>.
+    </p>
+  </footer>
+
+</main>
+
+<script>
+// ==================== DATEN ====================
+
+const NOTE_SEMITONES = {
+  C: 0, His: 0,
+  Cis: 1, Des: 1,
+  D: 2,
+  Dis: 3, Es: 3,
+  E: 4, Fes: 4,
+  F: 5, Eis: 5,
+  Fis: 6, Ges: 6,
+  G: 7,
+  Gis: 8, As: 8,
+  A: 9,
+  Ais: 10, B: 10,
+  H: 11, Ces: 11,
+};
+
+const KEYS = [
+  { id: "C-Dur",   tonic: "C",   mode: "Dur",  sig: "\u2014",       scale: ["C","D","E","F","G","A","H"], rel: "a-Moll" },
+  { id: "G-Dur",   tonic: "G",   mode: "Dur",  sig: "1\u266f (Fis)",scale: ["G","A","H","C","D","E","Fis"], rel: "e-Moll" },
+  { id: "D-Dur",   tonic: "D",   mode: "Dur",  sig: "2\u266f",      scale: ["D","E","Fis","G","A","H","Cis"], rel: "h-Moll" },
+  { id: "A-Dur",   tonic: "A",   mode: "Dur",  sig: "3\u266f",      scale: ["A","H","Cis","D","E","Fis","Gis"], rel: "fis-Moll" },
+  { id: "E-Dur",   tonic: "E",   mode: "Dur",  sig: "4\u266f",      scale: ["E","Fis","Gis","A","H","Cis","Dis"], rel: "cis-Moll" },
+  { id: "H-Dur",   tonic: "H",   mode: "Dur",  sig: "5\u266f",      scale: ["H","Cis","Dis","E","Fis","Gis","Ais"], rel: "gis-Moll" },
+  { id: "Fis-Dur", tonic: "Fis", mode: "Dur",  sig: "6\u266f",      scale: ["Fis","Gis","Ais","H","Cis","Dis","Eis"], rel: "dis-Moll" },
+  { id: "F-Dur",   tonic: "F",   mode: "Dur",  sig: "1\u266d (B)",  scale: ["F","G","A","B","C","D","E"], rel: "d-Moll" },
+  { id: "B-Dur",   tonic: "B",   mode: "Dur",  sig: "2\u266d",      scale: ["B","C","D","Es","F","G","A"], rel: "g-Moll" },
+  { id: "Es-Dur",  tonic: "Es",  mode: "Dur",  sig: "3\u266d",      scale: ["Es","F","G","As","B","C","D"], rel: "c-Moll" },
+  { id: "As-Dur",  tonic: "As",  mode: "Dur",  sig: "4\u266d",      scale: ["As","B","C","Des","Es","F","G"], rel: "f-Moll" },
+  { id: "Des-Dur", tonic: "Des", mode: "Dur",  sig: "5\u266d",      scale: ["Des","Es","F","Ges","As","B","C"], rel: "b-Moll" },
+  { id: "a-Moll",   tonic: "A",   mode: "Moll", sig: "\u2014",       scale: ["A","H","C","D","E","F","G"], rel: "C-Dur" },
+  { id: "e-Moll",   tonic: "E",   mode: "Moll", sig: "1\u266f",      scale: ["E","Fis","G","A","H","C","D"], rel: "G-Dur" },
+  { id: "h-Moll",   tonic: "H",   mode: "Moll", sig: "2\u266f",      scale: ["H","Cis","D","E","Fis","G","A"], rel: "D-Dur" },
+  { id: "fis-Moll", tonic: "Fis", mode: "Moll", sig: "3\u266f",      scale: ["Fis","Gis","A","H","Cis","D","E"], rel: "A-Dur" },
+  { id: "cis-Moll", tonic: "Cis", mode: "Moll", sig: "4\u266f",      scale: ["Cis","Dis","E","Fis","Gis","A","H"], rel: "E-Dur" },
+  { id: "gis-Moll", tonic: "Gis", mode: "Moll", sig: "5\u266f",      scale: ["Gis","Ais","H","Cis","Dis","E","Fis"], rel: "H-Dur" },
+  { id: "dis-Moll", tonic: "Dis", mode: "Moll", sig: "6\u266f",      scale: ["Dis","Eis","Fis","Gis","Ais","H","Cis"], rel: "Fis-Dur" },
+  { id: "d-Moll",   tonic: "D",   mode: "Moll", sig: "1\u266d",      scale: ["D","E","F","G","A","B","C"], rel: "F-Dur" },
+  { id: "g-Moll",   tonic: "G",   mode: "Moll", sig: "2\u266d",      scale: ["G","A","B","C","D","Es","F"], rel: "B-Dur" },
+  { id: "c-Moll",   tonic: "C",   mode: "Moll", sig: "3\u266d",      scale: ["C","D","Es","F","G","As","B"], rel: "Es-Dur" },
+  { id: "f-Moll",   tonic: "F",   mode: "Moll", sig: "4\u266d",      scale: ["F","G","As","B","C","Des","Es"], rel: "As-Dur" },
+  { id: "b-Moll",   tonic: "B",   mode: "Moll", sig: "5\u266d",      scale: ["B","C","Des","Es","F","Ges","As"], rel: "Des-Dur" },
+];
+
+const CIRCLE_POSITIONS = [
+  { major: "C-Dur",   minor: "a-Moll" },
+  { major: "G-Dur",   minor: "e-Moll" },
+  { major: "D-Dur",   minor: "h-Moll" },
+  { major: "A-Dur",   minor: "fis-Moll" },
+  { major: "E-Dur",   minor: "cis-Moll" },
+  { major: "H-Dur",   minor: "gis-Moll" },
+  { major: "Fis-Dur", minor: "dis-Moll" },
+  { major: "Des-Dur", minor: "b-Moll" },
+  { major: "As-Dur",  minor: "f-Moll" },
+  { major: "Es-Dur",  minor: "c-Moll" },
+  { major: "B-Dur",   minor: "g-Moll" },
+  { major: "F-Dur",   minor: "d-Moll" },
+];
+
+const ROMAN_DUR  = ["I", "ii", "iii", "IV", "V", "vi", "vii\u00b0"];
+const ROMAN_MOLL = ["i", "ii\u00b0", "III", "iv", "v", "VI", "VII"];
+
+const FUNC_DUR = [
+  { short: "T",    long: "Tonika",                        color: "tonika" },
+  { short: "Sp",   long: "Subdominantparallele",          color: "sp" },
+  { short: "Dp",   long: "Dominantparallele",             color: "dp" },
+  { short: "S",    long: "Subdominante",                  color: "subdom" },
+  { short: "D",    long: "Dominante",                     color: "dom" },
+  { short: "Tp",   long: "Tonikaparallele",               color: "tp" },
+  { short: "D\u2077", long: "verk\u00fcrzter Dominantseptakkord", color: "dim" },
+];
+
+const FUNC_MOLL = [
+  { short: "t",    long: "Tonika",                  color: "tonika" },
+  { short: "s\u00b0", long: "Subdominantgegenklang", color: "dim" },
+  { short: "tP",   long: "Tonikaparallele",         color: "tp" },
+  { short: "s",    long: "Subdominante",            color: "subdom" },
+  { short: "d",    long: "Dominante (nat\u00fcrl.)",color: "dom" },
+  { short: "sP",   long: "Subdominantparallele",    color: "sp" },
+  { short: "dP",   long: "Dominantparallele",       color: "dp" },
+];
+
+// Farben als Tailwind-Klassenstrings; WCAG-geprueft auf dunklem Grund
+const FUNC_COLORS = {
+  tonika: { bg: "bg-amber-500/15",  border: "border-amber-400/40", text: "text-amber-200",  dot: "bg-amber-400" },
+  subdom: { bg: "bg-sky-500/15",    border: "border-sky-400/40",   text: "text-sky-200",    dot: "bg-sky-400" },
+  dom:    { bg: "bg-rose-500/15",   border: "border-rose-400/40",  text: "text-rose-200",   dot: "bg-rose-400" },
+  tp:     { bg: "bg-amber-500/10",  border: "border-amber-300/25", text: "text-amber-100",  dot: "bg-amber-300" },
+  sp:     { bg: "bg-sky-500/10",    border: "border-sky-300/25",   text: "text-sky-100",    dot: "bg-sky-300" },
+  dp:     { bg: "bg-rose-500/10",   border: "border-rose-300/25",  text: "text-rose-100",   dot: "bg-rose-300" },
+  dim:    { bg: "bg-violet-500/15", border: "border-violet-400/40",text: "text-violet-200", dot: "bg-violet-400" },
+};
+
+// ==================== MUSIK-LOGIK ====================
+
+function buildChord(scale, degree) {
+  return [scale[degree % 7], scale[(degree + 2) % 7], scale[(degree + 4) % 7]];
+}
+
+function chordQuality(notes) {
+  const [r, t, f] = notes.map(n => NOTE_SEMITONES[n]);
+  const third = ((t - r) + 12) % 12;
+  const fifth = ((f - r) + 12) % 12;
+  if (third === 4 && fifth === 7) return "Dur";
+  if (third === 3 && fifth === 7) return "moll";
+  if (third === 3 && fifth === 6) return "vermindert";
+  if (third === 4 && fifth === 8) return "\u00fcberm\u00e4\u00dfig";
+  return "?";
+}
+
+function chordSymbol(root, quality) {
+  if (quality === "Dur") return root;
+  if (quality === "moll") return root.toLowerCase() + "m";
+  if (quality === "vermindert") return root + "\u00b0";
+  if (quality === "\u00fcberm\u00e4\u00dfig") return root + "+";
+  return root;
+}
+
+function buildDiatonicChords(keyData) {
+  const isDur = keyData.mode === "Dur";
+  const roman = isDur ? ROMAN_DUR : ROMAN_MOLL;
+  const funcs = isDur ? FUNC_DUR : FUNC_MOLL;
+  return keyData.scale.map((_, i) => {
+    const notes = buildChord(keyData.scale, i);
+    const quality = chordQuality(notes);
+    return {
+      degree: i + 1,
+      roman: roman[i],
+      notes,
+      quality,
+      symbol: chordSymbol(notes[0], quality),
+      func: funcs[i],
+    };
+  });
+}
+
+function findKey(tonic, mode) {
+  let k = KEYS.find(x => x.tonic === tonic && x.mode === mode);
+  if (k) return k;
+  const semi = NOTE_SEMITONES[tonic];
+  if (semi === undefined) return null;
+  return KEYS.find(x => NOTE_SEMITONES[x.tonic] === semi && x.mode === mode) || null;
+}
+
+function getRelatedKeys(sourceKey) {
+  const results = [];
+  const seen = new Set([sourceKey.id]);
+  const push = (key, relation) => {
+    if (key && !seen.has(key.id)) {
+      results.push({ key, relation });
+      seen.add(key.id);
+    }
+  };
+  push(findKey(sourceKey.scale[4], sourceKey.mode), "Dominante");
+  push(findKey(sourceKey.scale[3], sourceKey.mode), "Subdominante");
+  push(KEYS.find(k => k.id === sourceKey.rel), "Paralleltonart");
+  const variantMode = sourceKey.mode === "Dur" ? "Moll" : "Dur";
+  push(findKey(sourceKey.tonic, variantMode), "Varianttonart");
+  return results;
+}
+
+function getSharedChords(sourceKey, targetKey) {
+  const sourceChords = buildDiatonicChords(sourceKey);
+  const targetChords = buildDiatonicChords(targetKey);
+  const shared = [];
+  for (const sc of sourceChords) {
+    for (const tc of targetChords) {
+      if (
+        NOTE_SEMITONES[sc.notes[0]] === NOTE_SEMITONES[tc.notes[0]] &&
+        sc.quality === tc.quality
+      ) {
+        shared.push({
+          symbol: sc.symbol,
+          notes: sc.notes,
+          sourceRoman: sc.roman,
+          targetRoman: tc.roman,
+        });
+      }
+    }
+  }
+  return shared;
+}
+
+function buildModulationPath(sourceKey, targetKey, shared) {
+  const sourceChords = buildDiatonicChords(sourceKey);
+  const targetChords = buildDiatonicChords(targetKey);
+  const goodTargetRomans = ["ii", "IV", "vi", "ii\u00b0", "iv", "VI"];
+  let pivot = shared.find(s => goodTargetRomans.includes(s.targetRoman));
+  if (!pivot && shared.length > 0) pivot = shared[0];
+
+  const v7Symbol = targetKey.scale[4] + "\u2077";
+  const I_src = sourceChords[0];
+  const IV_src = sourceChords[3];
+  const I_tgt = targetChords[0];
+
+  if (pivot) {
+    return {
+      type: "diatonisch",
+      steps: [
+        { symbol: I_src.symbol, roman: I_src.roman, desc: I_src.roman + " in " + sourceKey.id + " \u2014 Ausgangstonart etablieren", zone: "source" },
+        { symbol: IV_src.symbol, roman: IV_src.roman, desc: IV_src.roman + " in " + sourceKey.id + " \u2014 in Bewegung kommen", zone: "source" },
+        { symbol: pivot.symbol, roman: pivot.sourceRoman + " = " + pivot.targetRoman, desc: "Pivot-Akkord: h\u00f6rst Du erst als " + pivot.sourceRoman + " in " + sourceKey.id + ", wird dann als " + pivot.targetRoman + " in " + targetKey.id + " umgedeutet", zone: "pivot" },
+        { symbol: v7Symbol, roman: "V\u2077", desc: "Zwischendominante \u2014 zieht zwingend nach " + targetKey.id, zone: "target" },
+        { symbol: I_tgt.symbol, roman: I_tgt.roman, desc: "Ankunft in " + targetKey.id, zone: "arrival" },
+      ],
+    };
+  }
+  return {
+    type: "chromatisch",
+    steps: [
+      { symbol: I_src.symbol, roman: I_src.roman, desc: I_src.roman + " in " + sourceKey.id, zone: "source" },
+      { symbol: IV_src.symbol, roman: IV_src.roman, desc: IV_src.roman + " in " + sourceKey.id, zone: "source" },
+      { symbol: v7Symbol, roman: "V\u2077", desc: "Direkte Zwischendominante \u2192 " + targetKey.id + " (chromatisch, keine gemeinsamen Akkorde)", zone: "target" },
+      { symbol: I_tgt.symbol, roman: I_tgt.roman, desc: "Ankunft in " + targetKey.id, zone: "arrival" },
+    ],
+  };
+}
+
+function getMnemonic(keyData) {
+  const sharps = keyData.sig.includes("\u266f");
+  const flats  = keyData.sig.includes("\u266d");
+
+  if (keyData.sig === "\u2014") {
+    return {
+      title: "Keine Vorzeichen",
+      text: keyData.mode === "Dur"
+        ? "C-Dur ist die \u00bbneutrale\u00ab Tonart. Nur wei\u00dfe Tasten auf dem Klavier."
+        : "a-Moll ist die parallele Molltonart zu C-Dur. Ebenfalls nur wei\u00dfe Tasten.",
+    };
+  }
+  if (sharps) {
+    return {
+      title: "Reihenfolge der Kreuze",
+      text: "Fis \u00b7 Cis \u00b7 Gis \u00b7 Dis \u00b7 Ais \u00b7 Eis \u00b7 His",
+      rhyme: "\u00bbGeh, Du Alter Esel, Hole Fische\u00ab  (gibt die Dur-Tonarten: G, D, A, E, H, Fis)",
+      trick: "Trick: Das letzte Kreuz + Halbton nach oben = Dur-Grundton. Beispiel: Letztes Kreuz Cis \u2192 Cis + Halbton = D \u2192 D-Dur.",
+    };
+  }
+  if (flats) {
+    return {
+      title: "Reihenfolge der Bes",
+      text: "B \u00b7 Es \u00b7 As \u00b7 Des \u00b7 Ges \u00b7 Ces \u00b7 Fes",
+      rhyme: "\u00bbFrische Br\u00f6tchen Essen Asse Des Ganzen Clubs\u00ab  (gibt die Dur-Tonarten: F, B, Es, As, Des, Ges, Ces)",
+      trick: "Trick: Das vorletzte \u266d = Dur-Grundton. Beispiel: \u266d-Vorzeichen B, Es, As \u2192 vorletztes ist Es \u2192 Es-Dur.",
+    };
+  }
+  return null;
+}
+
+// ==================== STATE ====================
+
+const state = {
+  selectedId: "G-Dur",
+  showAllKeys: false,
+  targetId: "D-Dur",
+  showAllTargets: false,
+};
+
+// ==================== RENDER ====================
+
+function h(tag, attrs = {}, ...children) {
+  const el = document.createElement(tag);
+  for (const [k, v] of Object.entries(attrs)) {
+    if (k === "class") el.className = v;
+    else if (k === "html") el.innerHTML = v;
+    else if (k.startsWith("on")) el.addEventListener(k.slice(2).toLowerCase(), v);
+    else el.setAttribute(k, v);
+  }
+  for (const c of children.flat()) {
+    if (c == null || c === false) continue;
+    el.appendChild(typeof c === "string" ? document.createTextNode(c) : c);
+  }
+  return el;
+}
+
+function renderCircleOfFifths() {
+  const size = 440, c = size / 2, rOuter = 180, rInner = 110;
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${size} ${size}`);
+  svg.setAttribute("class", "w-full max-w-sm");
+  svg.setAttribute("aria-label", "Quintenzirkel");
+
+  const bg1 = document.createElementNS(svgNS, "circle");
+  bg1.setAttribute("cx", c); bg1.setAttribute("cy", c);
+  bg1.setAttribute("r", rOuter + 28); bg1.setAttribute("fill", "none");
+  bg1.setAttribute("stroke", "rgba(148,163,184,0.12)"); bg1.setAttribute("stroke-width", "1");
+  svg.appendChild(bg1);
+  const bg2 = document.createElementNS(svgNS, "circle");
+  bg2.setAttribute("cx", c); bg2.setAttribute("cy", c);
+  bg2.setAttribute("r", rInner - 20); bg2.setAttribute("fill", "none");
+  bg2.setAttribute("stroke", "rgba(148,163,184,0.1)"); bg2.setAttribute("stroke-width", "1");
+  svg.appendChild(bg2);
+
+  CIRCLE_POSITIONS.forEach((pos, i) => {
+    const angle = ((i * 30) - 90) * Math.PI / 180;
+    const xO = Math.cos(angle) * rOuter + c, yO = Math.sin(angle) * rOuter + c;
+    const xI = Math.cos(angle) * rInner + c, yI = Math.sin(angle) * rInner + c;
+    const majSel = state.selectedId === pos.major;
+    const minSel = state.selectedId === pos.minor;
+
+    // Dur
+    const gMaj = document.createElementNS(svgNS, "g");
+    gMaj.style.cursor = "pointer";
+    gMaj.addEventListener("click", () => { state.selectedId = pos.major; render(); });
+    const circMaj = document.createElementNS(svgNS, "circle");
+    circMaj.setAttribute("cx", xO); circMaj.setAttribute("cy", yO); circMaj.setAttribute("r", 30);
+    circMaj.setAttribute("fill", majSel ? "#f59e0b" : "#1e293b");
+    circMaj.setAttribute("stroke", majSel ? "#fbbf24" : "#475569");
+    circMaj.setAttribute("stroke-width", majSel ? 2 : 1);
+    gMaj.appendChild(circMaj);
+    const textMaj = document.createElementNS(svgNS, "text");
+    textMaj.setAttribute("x", xO); textMaj.setAttribute("y", yO);
+    textMaj.setAttribute("text-anchor", "middle"); textMaj.setAttribute("dy", "0.35em");
+    textMaj.setAttribute("fill", majSel ? "#0a0e1a" : "#f1f5f9");
+    textMaj.setAttribute("font-size", "15"); textMaj.setAttribute("font-weight", "600");
+    textMaj.setAttribute("font-family", "DM Serif Display, Georgia, serif");
+    textMaj.style.pointerEvents = "none";
+    textMaj.textContent = pos.major.replace("-Dur", "");
+    gMaj.appendChild(textMaj);
+    svg.appendChild(gMaj);
+
+    // Moll
+    const gMin = document.createElementNS(svgNS, "g");
+    gMin.style.cursor = "pointer";
+    gMin.addEventListener("click", () => { state.selectedId = pos.minor; render(); });
+    const circMin = document.createElementNS(svgNS, "circle");
+    circMin.setAttribute("cx", xI); circMin.setAttribute("cy", yI); circMin.setAttribute("r", 22);
+    circMin.setAttribute("fill", minSel ? "#f59e0b" : "#0f172a");
+    circMin.setAttribute("stroke", minSel ? "#fbbf24" : "#334155");
+    circMin.setAttribute("stroke-width", minSel ? 2 : 1);
+    gMin.appendChild(circMin);
+    const textMin = document.createElementNS(svgNS, "text");
+    textMin.setAttribute("x", xI); textMin.setAttribute("y", yI);
+    textMin.setAttribute("text-anchor", "middle"); textMin.setAttribute("dy", "0.35em");
+    textMin.setAttribute("fill", minSel ? "#0a0e1a" : "#cbd5e1");
+    textMin.setAttribute("font-size", "12"); textMin.setAttribute("font-style", "italic");
+    textMin.setAttribute("font-family", "DM Serif Display, Georgia, serif");
+    textMin.style.pointerEvents = "none";
+    textMin.textContent = pos.minor.replace("-Moll", "");
+    gMin.appendChild(textMin);
+    svg.appendChild(gMin);
+  });
+
+  const lbl1 = document.createElementNS(svgNS, "text");
+  lbl1.setAttribute("x", c); lbl1.setAttribute("y", c - 6);
+  lbl1.setAttribute("text-anchor", "middle");
+  lbl1.setAttribute("fill", "#94a3b8"); lbl1.setAttribute("font-size", "12");
+  lbl1.setAttribute("font-family", "DM Serif Display, Georgia, serif");
+  lbl1.setAttribute("font-style", "italic");
+  lbl1.textContent = "Quintenzirkel";
+  svg.appendChild(lbl1);
+  const lbl2 = document.createElementNS(svgNS, "text");
+  lbl2.setAttribute("x", c); lbl2.setAttribute("y", c + 12);
+  lbl2.setAttribute("text-anchor", "middle");
+  lbl2.setAttribute("fill", "#94a3b8"); lbl2.setAttribute("font-size", "10");
+  lbl2.textContent = "Dur au\u00dfen \u00b7 Moll innen";
+  svg.appendChild(lbl2);
+
+  return h("div", { class: "flex justify-center" }, svg);
+}
+
+function renderKeySelector() {
+  const root = document.getElementById("keySelector");
+  root.innerHTML = "";
+  document.getElementById("toggleKeyView").textContent = state.showAllKeys ? "Quintenzirkel" : "Alle als Liste";
+  if (!state.showAllKeys) {
+    root.appendChild(renderCircleOfFifths());
+  } else {
+    const build = (mode) => {
+      const row = h("div", { class: "flex flex-wrap gap-2" });
+      KEYS.filter(k => k.mode === mode).forEach(k => {
+        const isSel = state.selectedId === k.id;
+        const btn = h("button", {
+          class: "serif px-3 py-2 text-sm rounded border transition-colors " +
+            (isSel ? "bg-amber-500 border-amber-400 text-slate-900 font-semibold"
+                   : "bg-slate-800/50 border-slate-700 text-slate-200 hover:border-amber-400/60"),
+          onclick: () => { state.selectedId = k.id; render(); }
+        }, k.id);
+        row.appendChild(btn);
+      });
+      return row;
+    };
+    const wrap = h("div", { class: "space-y-4" });
+    wrap.appendChild(h("div", {},
+      h("p", { class: "text-xs uppercase tracking-widest text-meta mb-3" }, "Dur-Tonarten"),
+      build("Dur")));
+    wrap.appendChild(h("div", {},
+      h("p", { class: "text-xs uppercase tracking-widest text-meta mb-3" }, "Moll-Tonarten"),
+      build("Moll")));
+    root.appendChild(wrap);
+  }
+}
+
+function renderPiano(scale, tonic) {
+  const scaleSet = new Set(scale.map(n => NOTE_SEMITONES[n]));
+  const nameAt = {};
+  scale.forEach(n => { nameAt[NOTE_SEMITONES[n]] = n; });
+  const tonicSemi = NOTE_SEMITONES[tonic];
+  const whiteSemis = [0, 2, 4, 5, 7, 9, 11];
+  const whiteDefault = ["C", "D", "E", "F", "G", "A", "H"];
+  const blackOffsets = [
+    { after: 0, semi: 1 }, { after: 1, semi: 3 },
+    { after: 3, semi: 6 }, { after: 4, semi: 8 }, { after: 5, semi: 10 },
+  ];
+  const octaves = 2, whiteW = 44, whiteH = 180, blackW = 28, blackH = 112;
+  const totalWhites = 7 * octaves + 1;
+  const width = totalWhites * whiteW;
+
+  const svgNS = "http://www.w3.org/2000/svg";
+  const svg = document.createElementNS(svgNS, "svg");
+  svg.setAttribute("viewBox", `0 0 ${width} ${whiteH + 6}`);
+  svg.setAttribute("class", "w-full min-w-[560px]");
+  svg.setAttribute("aria-label", "Klaviatur mit markierten Tonleitertoenen");
+
+  const whites = [];
+  for (let o = 0; o < octaves; o++) {
+    for (let i = 0; i < 7; i++) {
+      const semi = whiteSemis[i];
+      whites.push({
+        x: (o * 7 + i) * whiteW, semi,
+        label: nameAt[semi] || whiteDefault[i],
+        inScale: scaleSet.has(semi),
+        isTonic: semi === tonicSemi,
+      });
+    }
+  }
+  whites.push({
+    x: octaves * 7 * whiteW, semi: 0,
+    label: nameAt[0] || "C",
+    inScale: scaleSet.has(0),
+    isTonic: tonicSemi === 0,
+  });
+
+  whites.forEach(k => {
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("x", k.x); rect.setAttribute("y", 0);
+    rect.setAttribute("width", whiteW); rect.setAttribute("height", whiteH);
+    rect.setAttribute("rx", 3);
+    rect.setAttribute("fill", k.isTonic ? "#f59e0b" : k.inScale ? "#fef3c7" : "#f8fafc");
+    rect.setAttribute("stroke", "#0f172a"); rect.setAttribute("stroke-width", "1.5");
+    svg.appendChild(rect);
+    if (k.inScale) {
+      const txt = document.createElementNS(svgNS, "text");
+      txt.setAttribute("x", k.x + whiteW / 2); txt.setAttribute("y", whiteH - 18);
+      txt.setAttribute("text-anchor", "middle"); txt.setAttribute("font-size", "13");
+      txt.setAttribute("font-weight", "700");
+      txt.setAttribute("fill", k.isTonic ? "#0a0e1a" : "#1e293b");
+      txt.setAttribute("font-family", "DM Serif Display, Georgia, serif");
+      txt.textContent = k.label;
+      svg.appendChild(txt);
+    }
+  });
+
+  const blacks = [];
+  for (let o = 0; o < octaves; o++) {
+    blackOffsets.forEach(({ after, semi }) => {
+      blacks.push({
+        x: (o * 7 + after) * whiteW + whiteW - blackW / 2, semi,
+        label: nameAt[semi] || "",
+        inScale: scaleSet.has(semi),
+        isTonic: semi === tonicSemi,
+      });
+    });
+  }
+  blacks.forEach(k => {
+    const rect = document.createElementNS(svgNS, "rect");
+    rect.setAttribute("x", k.x); rect.setAttribute("y", 0);
+    rect.setAttribute("width", blackW); rect.setAttribute("height", blackH);
+    rect.setAttribute("rx", 2);
+    rect.setAttribute("fill", k.isTonic ? "#f59e0b" : k.inScale ? "#d97706" : "#0f172a");
+    rect.setAttribute("stroke", "#000"); rect.setAttribute("stroke-width", "1");
+    svg.appendChild(rect);
+    if (k.inScale) {
+      const txt = document.createElementNS(svgNS, "text");
+      txt.setAttribute("x", k.x + blackW / 2); txt.setAttribute("y", blackH - 12);
+      txt.setAttribute("text-anchor", "middle"); txt.setAttribute("font-size", "10");
+      txt.setAttribute("font-weight", "700");
+      txt.setAttribute("fill", k.isTonic ? "#0a0e1a" : "#fff");
+      txt.setAttribute("font-family", "DM Serif Display, Georgia, serif");
+      txt.textContent = k.label;
+      svg.appendChild(txt);
+    }
+  });
+
+  return h("div", { class: "overflow-x-auto -mx-4 px-4 sm:mx-0 sm:px-0" }, svg);
+}
+
+function renderScaleSection() {
+  const root = document.getElementById("scaleSection");
+  root.innerHTML = "";
+  const selected = KEYS.find(k => k.id === state.selectedId);
+  const stepPattern = selected.mode === "Dur"
+    ? ["GT", "GT", "HT", "GT", "GT", "GT", "HT"]
+    : ["GT", "HT", "GT", "GT", "HT", "GT", "GT"];
+
+  // Kopfzeile
+  const header = h("div", { class: "flex flex-wrap items-baseline gap-x-6 gap-y-2 mb-8" });
+  header.appendChild(h("div", {},
+    h("div", { class: "text-xs uppercase tracking-widest text-meta" }, "Gew\u00e4hlt"),
+    h("div", { class: "serif text-3xl sm:text-4xl text-amber-300 mt-1" }, selected.id)
+  ));
+  header.appendChild(h("div", {},
+    h("div", { class: "text-xs uppercase tracking-widest text-meta" }, "Vorzeichen"),
+    h("div", { class: "text-lg text-slate-200 mt-1" }, selected.sig)
+  ));
+  const parBtn = h("button", {
+    class: "serif text-lg mt-1 hover:text-amber-300 underline decoration-slate-600 underline-offset-4 transition-colors",
+    onclick: () => { state.selectedId = selected.rel; render(); }
+  }, selected.rel);
+  header.appendChild(h("div", {},
+    h("div", { class: "text-xs uppercase tracking-widest text-meta" }, "Paralleltonart"),
+    parBtn
+  ));
+  root.appendChild(header);
+
+  // Skala mit Schritten
+  const scaleLabel = h("div", { class: "text-xs uppercase tracking-widest text-meta mb-4" },
+    "Tonleiter mit Schrittmuster (GT = Ganzton, HT = Halbton)");
+  const scaleRow = h("div", { class: "flex flex-wrap items-center gap-0.5 sm:gap-1" });
+  selected.scale.forEach((n, i) => {
+    const noteBox = h("div", {
+      class: "flex flex-col items-center justify-center rounded px-3 py-3 min-w-[48px] sm:min-w-[60px] " +
+        (i === 0 ? "bg-amber-500 text-slate-900" : "bg-slate-800 text-slate-100")
+    },
+      h("div", { class: "text-[10px] opacity-70" }, String(i + 1)),
+      h("div", { class: "serif text-xl sm:text-2xl font-semibold" }, n)
+    );
+    const wrap = h("div", { class: "flex items-center" }, noteBox);
+    if (i < 6) {
+      wrap.appendChild(h("div", {
+        class: "px-1 sm:px-2 text-[10px] font-mono " +
+          (stepPattern[i] === "HT" ? "text-rose-300" : "text-meta")
+      }, stepPattern[i]));
+    }
+    scaleRow.appendChild(wrap);
+  });
+  root.appendChild(h("div", { class: "mb-6" }, scaleLabel, scaleRow));
+
+  // Piano
+  root.appendChild(renderPiano(selected.scale, selected.tonic));
+  root.appendChild(h("p", { class: "text-xs text-meta mt-3" },
+    h("span", { class: "inline-block w-3 h-3 bg-amber-500 rounded-sm align-middle mr-1" }),
+    " Grundton (Tonika) ",
+    h("span", { class: "inline-block w-3 h-3 bg-amber-100 rounded-sm align-middle mr-1 ml-4" }),
+    " Skalenton"
+  ));
+}
+
+function renderChords() {
+  const selected = KEYS.find(k => k.id === state.selectedId);
+  const chords = buildDiatonicChords(selected);
+  document.getElementById("chordIntro").textContent =
+    "Diese 7 Dreikl\u00e4nge kannst Du in " + selected.id + " frei verwenden \u2014 alle bestehen ausschlie\u00dflich aus Tonleitert\u00f6nen.";
+
+  const list = document.getElementById("chordList");
+  list.innerHTML = "";
+  chords.forEach(c => {
+    const col = FUNC_COLORS[c.func.color];
+    const card = h("div", { class: `rounded-lg border p-4 sm:p-5 ${col.bg} ${col.border}` },
+      h("div", { class: "flex items-start gap-4" },
+        h("div", { class: "flex-shrink-0 w-14 sm:w-16 text-center" },
+          h("div", { class: "text-[10px] uppercase tracking-widest text-meta" }, "Stufe"),
+          h("div", { class: `serif text-2xl font-semibold ${col.text}` }, c.roman)
+        ),
+        h("div", { class: "flex-1 min-w-0" },
+          h("div", { class: "flex flex-wrap items-baseline gap-x-4 gap-y-1 mb-2" },
+            h("div", { class: "serif text-2xl font-semibold text-slate-50" }, c.symbol),
+            h("div", { class: "text-sm text-meta" }, c.notes.join(" \u2013 ")),
+            h("div", { class: "text-xs text-meta italic" }, c.quality)
+          ),
+          h("div", { class: "flex items-center gap-2" },
+            h("span", { class: `inline-block w-2 h-2 rounded-full ${col.dot}` }),
+            h("span", { class: `text-sm font-medium ${col.text}` },
+              h("span", { class: "font-mono" }, c.func.short), " \u2014 " + c.func.long)
+          )
+        )
+      )
+    );
+    list.appendChild(card);
+  });
+}
+
+function renderMnemonics() {
+  const selected = KEYS.find(k => k.id === state.selectedId);
+  const mn = getMnemonic(selected);
+  const box = document.getElementById("mnemonicBox");
+  box.innerHTML = "";
+  if (mn) {
+    const card = h("div", { class: "bg-amber-500/5 border border-amber-400/20 rounded-lg p-5 sm:p-6" },
+      h("div", { class: "text-xs uppercase tracking-widest text-amber-400 mb-2" }, mn.title),
+      h("div", { class: "serif text-lg sm:text-xl text-amber-50 mb-3" }, mn.text)
+    );
+    if (mn.rhyme) card.appendChild(h("div", { class: "serif text-quiet italic mb-3" }, mn.rhyme));
+    if (mn.trick) card.appendChild(h("div", { class: "text-sm text-meta border-l-2 border-amber-400/40 pl-3" }, mn.trick));
+    box.appendChild(card);
+  }
+
+  const par = document.getElementById("parallelCard");
+  par.innerHTML = "";
+  par.appendChild(h("div", { class: "serif text-sm font-semibold text-amber-200 mb-2" }, "Parallele Tonart"));
+  par.appendChild(h("div", { class: "text-sm text-quiet leading-relaxed" },
+    selected.id + " und " + selected.rel + " teilen sich die gleichen Vorzeichen und T\u00f6ne \u2014 nur der Grundton (und damit das Gef\u00fchl) \u00e4ndert sich. Das ist der schnellste Wechsel zwischen Dur und Moll."
+  ));
+}
+
+function renderModulation() {
+  const selected = KEYS.find(k => k.id === state.selectedId);
+  const related = getRelatedKeys(selected);
+
+  // Stelle sicher, dass targetId nicht = selectedId
+  if (state.targetId === state.selectedId) {
+    state.targetId = (related[0] && related[0].key.id) || "C-Dur";
+  }
+  const target = KEYS.find(k => k.id === state.targetId) || KEYS[0];
+  const shared = getSharedChords(selected, target);
+  const modPath = buildModulationPath(selected, target, shared);
+
+  document.getElementById("modSourceLabel").textContent = selected.id;
+
+  // Verwandte Tonarten
+  const relRow = document.getElementById("relatedKeysRow");
+  relRow.innerHTML = "";
+  related.forEach(rk => {
+    const isSel = state.targetId === rk.key.id;
+    const btn = h("button", {
+      class: "flex flex-col items-start px-3 py-2 rounded border transition-colors " +
+        (isSel ? "bg-amber-500 border-amber-400 text-slate-900"
+               : "bg-slate-800/50 border-slate-700 text-slate-200 hover:border-amber-400/60"),
+      onclick: () => { state.targetId = rk.key.id; render(); }
+    },
+      h("span", { class: "serif text-base font-semibold leading-tight" }, rk.key.id),
+      h("span", { class: "text-[10px] uppercase tracking-wide mt-0.5 " + (isSel ? "text-slate-800" : "text-meta") }, rk.relation)
+    );
+    relRow.appendChild(btn);
+  });
+
+  // Alle Ziele
+  const allList = document.getElementById("allTargetsList");
+  allList.innerHTML = "";
+  KEYS.filter(k => k.id !== state.selectedId).forEach(k => {
+    const isSel = state.targetId === k.id;
+    const btn = h("button", {
+      class: "serif px-2 py-1 text-xs rounded border transition-colors " +
+        (isSel ? "bg-amber-500 border-amber-400 text-slate-900"
+               : "bg-slate-800/30 border-slate-700 text-slate-300 hover:border-amber-400/40"),
+      onclick: () => { state.targetId = k.id; render(); }
+    }, k.id);
+    allList.appendChild(btn);
+  });
+  allList.classList.toggle("hidden", !state.showAllTargets);
+  document.getElementById("toggleAllTargets").textContent = state.showAllTargets ? "\u2191 Weniger" : "\u2193 Andere Tonart w\u00e4hlen";
+
+  // Analyse
+  const anaRoot = document.getElementById("modulationAnalysis");
+  anaRoot.innerHTML = "";
+
+  const head = h("div", { class: "flex flex-wrap items-baseline gap-x-5 gap-y-2 mb-8" },
+    h("div", { class: "serif text-2xl sm:text-3xl" },
+      h("span", { class: "text-meta text-lg" }, "Von "),
+      h("span", { class: "text-amber-300" }, selected.id),
+      h("span", { class: "text-slate-500 mx-3" }, " \u2192 "),
+      h("span", { class: "text-amber-300" }, target.id)
+    )
+  );
+  const closeness = shared.length >= 4 ? "bg-emerald-400" : shared.length >= 2 ? "bg-amber-400" : "bg-rose-400";
+  const closenessText = shared.length >= 4 ? "(eng verwandt)" : shared.length >= 2 ? "(verwandt)" : shared.length === 1 ? "(entfernt)" : "(sehr entfernt)";
+  head.appendChild(h("div", { class: "flex items-center gap-2 text-sm" },
+    h("span", { class: `inline-block w-2 h-2 rounded-full ${closeness}` }),
+    h("span", { class: "text-quiet" },
+      shared.length + " gemeinsame" + (shared.length === 1 ? "r" : "") + " Akkord" + (shared.length === 1 ? "" : "e"),
+      h("span", { class: "text-meta ml-2" }, closenessText)
+    )
+  ));
+  anaRoot.appendChild(head);
+
+  // Shared chords
+  if (shared.length > 0) {
+    const section = h("div", { class: "mb-10" },
+      h("div", { class: "text-xs uppercase tracking-widest text-meta mb-4" }, "Pivot-Kandidaten \u2014 Akkorde, die zu beiden Tonarten geh\u00f6ren")
+    );
+    const grid = h("div", { class: "grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-2" });
+    shared.forEach(sc => {
+      grid.appendChild(h("div", { class: "bg-slate-800/50 border border-slate-700 rounded p-3" },
+        h("div", { class: "serif text-2xl font-semibold text-amber-100 mb-1" }, sc.symbol),
+        h("div", { class: "text-[10px] text-meta leading-snug" },
+          h("span", { class: "font-mono text-quiet" }, sc.sourceRoman), " in " + selected.id),
+        h("div", { class: "text-[10px] text-meta leading-snug" },
+          h("span", { class: "font-mono text-quiet" }, sc.targetRoman), " in " + target.id)
+      ));
+    });
+    section.appendChild(grid);
+    anaRoot.appendChild(section);
+  }
+
+  // Modulationspfad
+  const pathLabel = h("div", { class: "text-xs uppercase tracking-widest text-meta mb-4" },
+    "Beispielpfad \u2014 " + (modPath.type === "diatonisch" ? "Pivot-Modulation (klassisch, weich)" : "Chromatische Modulation (direkt)"));
+  const pathRow = h("div", { class: "flex flex-wrap items-center gap-1 mb-6" });
+
+  const zoneStyles = {
+    source:  "bg-sky-500/15 border-sky-400/40 text-sky-100",
+    pivot:   "bg-amber-500/25 border-amber-400/60 text-amber-50 ring-1 ring-amber-400/30",
+    target:  "bg-rose-500/15 border-rose-400/40 text-rose-100",
+    arrival: "bg-emerald-500/15 border-emerald-400/50 text-emerald-100",
+  };
+  modPath.steps.forEach((step, i) => {
+    const box = h("div", { class: `flex flex-col items-center justify-center px-3 py-3 rounded border min-w-[72px] ${zoneStyles[step.zone]}` },
+      h("div", { class: "serif text-lg sm:text-xl font-semibold" }, step.symbol),
+      h("div", { class: "text-[9px] font-mono opacity-80 mt-0.5 whitespace-nowrap" }, step.roman)
+    );
+    const wrap = h("div", { class: "flex items-center" }, box);
+    if (i < modPath.steps.length - 1) {
+      wrap.appendChild(h("div", { class: "text-slate-500 mx-1 text-lg" }, " \u2192 "));
+    }
+    pathRow.appendChild(wrap);
+  });
+
+  const stepsList = h("ol", { class: "space-y-2 text-sm text-meta" });
+  modPath.steps.forEach((step, i) => {
+    stepsList.appendChild(h("li", { class: "flex items-start gap-3" },
+      h("span", { class: "text-meta font-mono text-xs mt-0.5 w-4 flex-shrink-0" }, (i + 1) + "."),
+      h("span", {},
+        h("span", { class: "serif text-slate-100 font-semibold" }, step.symbol),
+        h("span", { class: "text-meta" }, " \u2014 " + step.desc)
+      )
+    ));
+  });
+
+  const legend = h("div", { class: "mt-6 flex flex-wrap gap-x-4 gap-y-2 text-xs text-meta" },
+    h("span", { class: "flex items-center gap-1.5" }, h("span", { class: "inline-block w-2.5 h-2.5 rounded-sm bg-sky-400" }), "Ausgangstonart"),
+    h("span", { class: "flex items-center gap-1.5" }, h("span", { class: "inline-block w-2.5 h-2.5 rounded-sm bg-amber-400" }), "Pivot (Umdeutung)"),
+    h("span", { class: "flex items-center gap-1.5" }, h("span", { class: "inline-block w-2.5 h-2.5 rounded-sm bg-rose-400" }), "Zwischendominante"),
+    h("span", { class: "flex items-center gap-1.5" }, h("span", { class: "inline-block w-2.5 h-2.5 rounded-sm bg-emerald-400" }), "Ziel erreicht")
+  );
+
+  anaRoot.appendChild(pathLabel);
+  anaRoot.appendChild(pathRow);
+  anaRoot.appendChild(stepsList);
+  anaRoot.appendChild(legend);
+}
+
+// ==================== MAIN RENDER ====================
+
+function render() {
+  renderKeySelector();
+  renderScaleSection();
+  renderChords();
+  renderMnemonics();
+  renderModulation();
+}
+
+// ==================== INIT ====================
+
+document.getElementById("toggleKeyView").addEventListener("click", () => {
+  state.showAllKeys = !state.showAllKeys;
+  renderKeySelector();
+});
+document.getElementById("toggleAllTargets").addEventListener("click", () => {
+  state.showAllTargets = !state.showAllTargets;
+  renderModulation();
+});
+
+render();
+</script>
+
+</body>
+</html>
